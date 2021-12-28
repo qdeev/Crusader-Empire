@@ -1,2 +1,2 @@
-# Crusader-Empire
-pygame project no. 1
+# Crusader-Empire developing branch
+just the beginning
