@@ -33,8 +33,7 @@ class Ability:
         elif self.action_type == ActionType.CREATE_BARACK:
             target.create_task_barack(args["args"])
         elif self.action_type == ActionType.CREATE_SUPPLY:
-            target.create_task_barack(args["args"])
-
+            target.create_task_supply(args["args"])
 
 
 class AbilityHandler:
@@ -53,6 +52,7 @@ class AbilityHandler:
         self.get_ability(key).cast(self.unit, args)
 
 
+"""naming the abilities"""
 NULL_ABILITY = Ability(pygame.K_ESCAPE, ActionType.NULL)
 MOVE_ABILITY = Ability(pygame.BUTTON_RIGHT, ActionType.MOVE)
 RALLYPOINT_ABILITY = Ability(pygame.BUTTON_RIGHT, ActionType.RALLYPOINT)

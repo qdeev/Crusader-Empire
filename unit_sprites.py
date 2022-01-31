@@ -3,6 +3,10 @@ import physics
 import units
 from sprites import UnitSprite
 
+from game_features import Task, create_rect
+from datetime import datetime, timedelta
+import sprites
+
 
 class CrusaderWorkerSprite(units.CrusaderWorker, UnitSprite, physics.RigidBody):
 
@@ -11,6 +15,90 @@ class CrusaderWorkerSprite(units.CrusaderWorker, UnitSprite, physics.RigidBody):
         units.CrusaderWorker.__init__(self, game)
         UnitSprite.__init__(self, game)
         physics.RigidBody.__init__(self, game)
+        self.task_started = None
+
+    def task_gather(self, target):
+        self.task_started = datetime.now()
+        task = Task(self.gather, 1, target)
+        self.task_manager.tasks.append(task)
+        return 1
+
+    def gather(self, target):
+        logging.info("gathering")
+        if datetime.now() - self.task_started >= timedelta(seconds=3):
+            if isinstance(target, sprites.TreeSprite):
+                self.game.wood += target.get_resources()
+            elif isinstance(target, sprites.MineSprite):
+                self.game.iron += target.get_resources()
+            self.task_started = datetime.now()
+            return 1
+        return 0
+
+    def create_task_fortress(self, point: Tuple[int, int]):
+        if self.game.wood >= 400 and self.game.iron >= 400:
+            self.task_started = datetime.now()
+            task = Task(self.create_fortress, 1, point)
+            self.task_manager.tasks.append(task)
+            self.game.wood -= 400
+            self.game.iron -= 400
+            return 1
+
+    def create_fortress(self, point: Tuple[int, int]):
+        from building_sprites import CrusaderFortressSprite
+        logging.info("creating_fortress")
+        rect = create_rect(point[0], point[1], point[0] + 30, point[1] + 30)
+        sprite = sprites.Sprite()
+        sprite.load(rect.x, rect.y, pygame.Surface((abs(rect.w), abs(rect.h))), [])
+        if not pygame.sprite.spritecollide(sprite, self.game.all_sprites_group, dokill=False):
+            if datetime.now() - self.task_started >= timedelta(seconds=10):
+                CrusaderFortressSprite(self.game, point[0], point[1], [self.game.all_sprites_group])
+                self.task_started = datetime.now()
+                return 1
+        return 0
+
+    def create_task_barack(self, point: Tuple[int, int]):
+        if self.game.wood >= 100 and self.game.iron >= 100:
+            self.task_started = datetime.now()
+            task = Task(self.create_barack, 1, point)
+            self.task_manager.tasks.append(task)
+            self.game.wood -= 100
+            self.game.iron -= 100
+            return 1
+
+    def create_barack(self, point: Tuple[int, int]):
+        from building_sprites import CrusaderBarackSprite
+        logging.info("creating_barack")
+        rect = create_rect(point[0], point[1], point[0] + 30, point[1] + 30)
+        sprite = sprites.Sprite()
+        sprite.load(rect.x, rect.y, pygame.Surface((abs(rect.w), abs(rect.h))), [])
+        if not pygame.sprite.spritecollide(sprite, self.game.all_sprites_group, dokill=False):
+            if datetime.now() - self.task_started >= timedelta(seconds=7):
+                CrusaderBarackSprite(self.game, point[0], point[1], [self.game.all_sprites_group])
+                self.task_started = datetime.now()
+                return 1
+        return 0
+
+    def create_task_supply(self, point: Tuple[int, int]):
+        if self.game.wood >= 100:
+            self.task_started = datetime.now()
+            task = Task(self.create_supply, 1, point)
+            self.task_manager.tasks.append(task)
+            self.game.wood -= 100
+            return 1
+
+    def create_supply(self, point: Tuple[int, int]):
+        from building_sprites import CrusaderSupplySprite
+        logging.info("creating_supply")
+        rect = create_rect(point[0], point[1], point[0] + 30, point[1] + 30)
+        sprite = sprites.Sprite()
+        sprite.load(rect.x, rect.y, pygame.Surface((abs(rect.w), abs(rect.h))), [])
+        if not pygame.sprite.spritecollide(sprite, self.game.all_sprites_group, dokill=False):
+            if datetime.now() - self.task_started >= timedelta(seconds=5):
+                CrusaderSupplySprite(self.game, point[0], point[1], [self.game.all_sprites_group])
+                self.task_started = datetime.now()
+                self.game.max_food += 8
+                return 1
+        return 0
 
 
 class CrusaderMilitiaSprite(units.CrusaderMilitia, UnitSprite, physics.RigidBody):

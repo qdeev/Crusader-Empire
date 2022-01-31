@@ -1,6 +1,9 @@
 from CONSTANTS import *
 import buildings
 import physics
+
+from game_features import Task
+from datetime import datetime, timedelta
 import sprites
 
 
@@ -11,6 +14,28 @@ class CrusaderFortressSprite(buildings.CrusaderFortress, sprites.BuildingProduct
         buildings.CrusaderFortress.__init__(self, game)
         sprites.BuildingProductionSprite.__init__(self, game)
         physics.Obstacle.__init__(self, game)
+        self.task_started = None
+
+    def create_task_worker(self):
+        if self.game.wood >= 50 and self.game.max_food - self.game.food >= 1:
+            self.task_started = datetime.now()
+            task = Task(self.create_worker, 1)
+            self.task_manager.tasks.append(task)
+            self.game.wood -= 50
+            self.game.food += 1
+            return 1
+
+    def create_worker(self):
+        from unit_sprites import CrusaderWorkerSprite
+        if datetime.now() - self.task_started >= timedelta(seconds=3):
+            a = CrusaderWorkerSprite(self.game, self.rect.x + 20,
+                                     self.rect.y + self.rect.height + 10,
+                                     [self.game.all_sprites_group])
+            self.task_started = datetime.now()
+            if self.rallypoint is not None:
+                a.move(self.rallypoint)
+            return 1
+        return 0
 
 
 class CrusaderBarackSprite(buildings.CrusaderBarack, sprites.BuildingProductionSprite, physics.Obstacle):
@@ -20,14 +45,70 @@ class CrusaderBarackSprite(buildings.CrusaderBarack, sprites.BuildingProductionS
         buildings.CrusaderBarack.__init__(self, game)
         sprites.BuildingProductionSprite.__init__(self, game)
         physics.Obstacle.__init__(self, game)
+        self.task_started = None
+
+    def create_task_swordsman(self):
+        if self.game.wood >= 50 and self.game.iron >= 50 and self.game.max_food - self.game.food >= 3:
+            self.task_started = datetime.now()
+            task = Task(self.create_swordsman, 1)
+            self.task_manager.tasks.append(task)
+            self.game.wood -= 50
+            self.game.iron -= 50
+            self.game.food += 3
+            return 1
+
+    def create_swordsman(self):
+        from unit_sprites import CrusaderSwordsmanSprite
+        logging.info("creating_swordsman")
+        if datetime.now() - self.task_started >= timedelta(seconds=3):
+            a = CrusaderSwordsmanSprite(self.game, self.rect.x,
+                                        self.rect.y + self.rect.height + 10,
+                                        [self.game.all_sprites_group])
+            self.task_started = datetime.now()
+            if self.rallypoint is not None:
+                a.move(self.rallypoint)
+            return 1
+        return 0
+
+    def create_task_spearman(self):
+        if self.game.wood >= 60 and self.game.iron >= 30 and self.game.max_food - self.game.food >= 2:
+            self.task_started = datetime.now()
+            task = Task(self.create_spearman, 1)
+            self.task_manager.tasks.append(task)
+            self.game.wood -= 60
+            self.game.iron -= 30
+            self.game.food += 2
+            return 1
+
+    def create_spearman(self):
+        from unit_sprites import CrusaderSpearmanSprite
+        logging.info("creating_spearman")
+        if datetime.now() - self.task_started >= timedelta(seconds=3):
+            a = CrusaderSpearmanSprite(self.game, self.rect.x,
+                                       self.rect.y + self.rect.height + 10,
+                                       [self.game.all_sprites_group])
+            self.task_started = datetime.now()
+            if self.rallypoint is not None:
+                a.move(self.rallypoint)
+            return 1
+        return 0
 
 
-class CrusaderMineSprite(buildings.CrusaderMine, sprites.BuildingProductionSprite, physics.Obstacle):
+class CrusaderMineSprite(buildings.CrusaderMine, sprites.MineSprite, physics.Obstacle):
 
     def __init__(self, game, x, y, groups):
         self.load(x, y, CRUSADER_MINE_IMAGE, groups)
         buildings.CrusaderMine.__init__(self, game)
-        sprites.BuildingProductionSprite.__init__(self, game)
+        sprites.MineSprite.__init__(self, game)
+        physics.Obstacle.__init__(self, game)
+
+
+class CrusaderTreeSprite(buildings.CrusaderTree, sprites.TreeSprite, physics.Obstacle):
+
+    def __init__(self, game, x, y, groups):
+        self.load(x, y, CRUSADER_TREE_IMAGE, groups)
+        buildings.CrusaderTree.__init__(self, game)
+        sprites.TreeSprite.__init__(self, game)
         physics.Obstacle.__init__(self, game)
 
 

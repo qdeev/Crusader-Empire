@@ -2,9 +2,8 @@ from CONSTANTS import *
 
 
 def main():
-    from game import Game
-    game = Game()
-    sys.exit(game.run())
+    from start_screen import Menu
+    sys.exit(Menu().run())
 
 
 if __name__ == '__main__':

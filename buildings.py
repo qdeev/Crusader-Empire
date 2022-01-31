@@ -1,6 +1,3 @@
-import pygame.sprite
-
-import unit_sprites
 from CONSTANTS import *
 from modifiers import *
 from game_features import TaskManager
@@ -11,6 +8,7 @@ class Building:
     def __init__(self, game, hp, armor, abilities: List[Ability], modifiers: List[Modifier], race: Race):
         self.game = game
         self.hp = hp
+        self.max_hp = hp
         self.armor = armor
         self.abilities = AbilityHandler(self, abilities + [NULL_ABILITY])
         self.task_manager = TaskManager(self)
@@ -41,14 +39,19 @@ class CrusaderFortress(CrusaderProductionBuilding):
         STATS = BUILDING_STATS["crusader"]["fortress"]
         super().__init__(game, STATS["hp"], STATS["armor"], [CREATE_WORKER_ABILITY], [])
 
-    def create_worker(self, pos: Tuple[int, int], *groups):
-        unit_sprites.CrusaderWorkerSprite(self, pos[0], pos[1], [groups])
-
 
 class CrusaderBarack(CrusaderProductionBuilding):
 
     def __init__(self, game):
         STATS = BUILDING_STATS["crusader"]["barack"]
+        super().__init__(game, STATS["hp"], STATS["armor"], [CREATE_SPEARMAN_ABILITY,
+                                                             CREATE_SWORDSMAN_ABILITY], [])
+
+
+class CrusaderTree(CrusaderBuilding):
+
+    def __init__(self, game):
+        STATS = BUILDING_STATS["crusader"]["mine"]
         super().__init__(game, STATS["hp"], STATS["armor"], [], [])
 
 

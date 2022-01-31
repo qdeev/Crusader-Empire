@@ -1,15 +1,18 @@
-from CONSTANTS import *
+import pygame.sprite
+
 from modifiers import *
-from game_features import TaskManager
+from datetime import datetime, timedelta
+from game_features import TaskManager, Task
 
 
 class Unit:
 
     def __init__(self, game, damage: int, hp: int, armor: int,
                  attack_range: int, attack_speed: int, move_speed: int, abilities: List[Ability],
-                 modifiers: List[Modifier], race: Race, soldier: bool):
+                 modifiers: List[Modifier], race: Race, soldier: bool, food_cost):
         self.game = game
         self.damage = damage
+        self.max_hp = hp
         self.hp = hp
         self.armor = armor
         self.attack_range = attack_range
@@ -20,6 +23,7 @@ class Unit:
         self.modifiers = modifiers
         self.race = race
         self.soldier = soldier
+        self.food_cost = food_cost
 
 
 class CrusaderUnit(Unit):
@@ -27,9 +31,9 @@ class CrusaderUnit(Unit):
 
     def __init__(self, game, damage: int, hp: int, armor: int,
                  attack_range: int, attack_speed: int, move_speed: int, abilities: List[Ability],
-                 modifiers: List[Modifier], soldier: bool):
+                 modifiers: List[Modifier], soldier: bool, food_cost: int):
         super().__init__(game, damage, hp, armor, attack_range,
-                         attack_speed, move_speed, abilities, modifiers, CrusaderUnit.RACE, soldier)
+                         attack_speed, move_speed, abilities, modifiers, CrusaderUnit.RACE, soldier, food_cost)
 
 
 class CrusaderWorker(CrusaderUnit):
@@ -37,16 +41,36 @@ class CrusaderWorker(CrusaderUnit):
     def __init__(self, game):
         STATS = UNIT_STATS["crusader"]["worker"]
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
-                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"], [], [], False)
+                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"], [CREATE_FORTRESS_ABILITY,
+                                                                                             CREATE_BARACK_ABILITY,
+                                                                                             CREATE_SUPPLY_ABILITY], [],
+                         False, STATS["food_cost"])
 
 
 class CrusaderSoldier(CrusaderUnit):
 
     def __init__(self, game, damage: int, hp: int, armor: int,
                  attack_range: int, attack_speed: int, move_speed: int, abilities: List[Ability],
-                 modifiers: List[Modifier]):
+                 modifiers: List[Modifier], food_cost):
         super().__init__(game, damage, hp, armor, attack_range,
-                         attack_speed, move_speed, abilities, modifiers, True)
+                         attack_speed, move_speed, abilities, modifiers, True, food_cost)
+        self.task_started = None
+
+    def create_task_attack(self, target: pygame.sprite.Sprite):
+        self.task_started = datetime.now()
+
+        task = Task(self.attack, 1, target)
+        self.task_manager.tasks.append(task)
+
+        return 1
+
+    def attack(self, target):
+        logging.info("crusader_attack")
+        if datetime.now() - self.task_started >= timedelta(seconds=self.attack_speed):
+            target.hp -= self.damage
+            self.task_started = datetime.now()
+            return 1
+        return 0
 
 
 class CrusaderInfantry(CrusaderSoldier):
@@ -58,7 +82,7 @@ class CrusaderMilitia(CrusaderInfantry):
     def __init__(self, game):
         STATS = UNIT_STATS["crusader"]["militia"]
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
-                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"], [], [])
+                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"], [], [], STATS["food_cost"])
 
 
 class CrusaderSpearman(CrusaderInfantry):
@@ -68,7 +92,7 @@ class CrusaderSpearman(CrusaderInfantry):
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
-                         [Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)])
+                         [Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)], STATS["food_cost"])
 
 
 class CrusaderSwordsman(CrusaderInfantry):
@@ -79,7 +103,7 @@ class CrusaderSwordsman(CrusaderInfantry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("SPEARMAN", ActionType.ATTACK, 10),
-                          Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)])
+                          Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)], STATS["food_cost"])
 
 
 class CrusaderArcher(CrusaderInfantry):
@@ -91,7 +115,7 @@ class CrusaderArcher(CrusaderInfantry):
                          [],
                          [Modifier("CAVALRY", ActionType.ATTACK, 15),
                           Modifier("SWORDSMAN", ActionType.ATTACK, 15),
-                          Modifier("SPEARMAN", ActionType.ATTACK, 15)])
+                          Modifier("SPEARMAN", ActionType.ATTACK, 15)], STATS["food_cost"])
 
 
 class CrusaderGeneral(CrusaderInfantry):
@@ -101,8 +125,8 @@ class CrusaderGeneral(CrusaderInfantry):
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
 
-                         [Ability(pygame.K_e, "НЕ ЗАБЫТЬ"), Ability(pygame.K_f, "НЕ ЗАБЫТЬ")],
-                         [])
+                         [Ability(pygame.K_e, ""), Ability(pygame.K_f, "")],
+                         [], STATS["food_cost"])
 
 
 class CrusaderCavalry(CrusaderSoldier):
@@ -117,7 +141,7 @@ class CrusaderEquestrianBrothers(CrusaderCavalry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class CrusaderOrderKnights(CrusaderCavalry):
@@ -128,7 +152,7 @@ class CrusaderOrderKnights(CrusaderCavalry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class CrusaderHospitallers(CrusaderCavalry):
@@ -139,7 +163,7 @@ class CrusaderHospitallers(CrusaderCavalry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class CrusaderSiegeMachines(CrusaderSoldier):
@@ -154,7 +178,7 @@ class CrusaderBatteringRam(CrusaderSiegeMachines):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class CrusaderCatapult(CrusaderSiegeMachines):
@@ -165,7 +189,7 @@ class CrusaderCatapult(CrusaderSiegeMachines):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class ArabUnit(Unit):
@@ -173,9 +197,9 @@ class ArabUnit(Unit):
 
     def __init__(self, game, damage: int, hp: int, armor: int,
                  attack_range: int, attack_speed: int, move_speed: int,
-                 abilities: List[Ability], modifiers: List[Modifier], soldier: bool):
+                 abilities: List[Ability], modifiers: List[Modifier], soldier: bool, food_cost):
         super().__init__(game, damage, hp, armor, attack_range,
-                         attack_speed, move_speed, abilities, modifiers, ArabUnit.RACE, soldier)
+                         attack_speed, move_speed, abilities, modifiers, ArabUnit.RACE, soldier, food_cost)
 
 
 class ArabWorker(ArabUnit):
@@ -183,15 +207,32 @@ class ArabWorker(ArabUnit):
     def __init__(self, game):
         STATS = UNIT_STATS["arab"]["worker"]
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
-                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"], [], [], False)
+                         STATS["attack_range"], STATS["attack_speed"],
+                         STATS["move_speed"], [], [], False, STATS["food_cost"])
 
 
 class ArabSoldier(ArabUnit):
     def __init__(self, game, damage: int, hp: int, armor: int,
                  attack_range: int, attack_speed: int, move_speed: int, abilities: List[Ability],
-                 modifiers: List[Modifier]):
+                 modifiers: List[Modifier], food_cost):
         super().__init__(game, damage, hp, armor, attack_range,
-                         attack_speed, move_speed, abilities, modifiers, True)
+                         attack_speed, move_speed, abilities, modifiers, True, food_cost)
+        self.task_started = None
+
+    def create_task_attack(self, target: pygame.sprite.Sprite):
+        self.task_started = datetime.now()
+
+        task = Task(self.attack, 1, target)
+        self.task_manager.tasks.append(task)
+        return 1
+
+    def attack(self, target):
+        logging.info("arabs_attacking")
+        if datetime.now() - self.task_started >= timedelta(seconds=self.attack_speed):
+            target.hp -= self.damage
+            self.task_started = datetime.now()
+            return 1
+        return 0
 
 
 class ArabInfantry(ArabSoldier):
@@ -203,10 +244,7 @@ class ArabAssassin(ArabInfantry):
     def __init__(self, game):
         STATS = UNIT_STATS["crusader"]["assassin"]
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
-                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
-
-                         [Ability(pygame.K_e, "НЕ ЗАБЫТЬ"), Ability(pygame.K_f, "НЕ ЗАБЫТЬ")],
-                         [])
+                         STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"], [], [], STATS["food_cost"])
 
 
 class ArabDesertTribalWarrior(ArabInfantry):
@@ -216,7 +254,7 @@ class ArabDesertTribalWarrior(ArabInfantry):
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
-                         [Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)])
+                         [Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)], STATS["food_cost"])
 
 
 class ArabSpearman(ArabInfantry):
@@ -226,7 +264,7 @@ class ArabSpearman(ArabInfantry):
         super().__init__(game, STATS["damage"], STATS["hp"], STATS["armor"],
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
-                         [Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)])
+                         [Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)], STATS["food_cost"])
 
 
 class ArabShotelSwordsman(ArabInfantry):
@@ -237,7 +275,7 @@ class ArabShotelSwordsman(ArabInfantry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("SPEARMAN", ActionType.ATTACK, 10),
-                          Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)])
+                          Modifier("LIGHT_CAVALRY", ActionType.ATTACK, 20)], STATS["food_cost"])
 
 
 class ArabArcher(ArabInfantry):
@@ -249,7 +287,7 @@ class ArabArcher(ArabInfantry):
                          [],
                          [Modifier("CAVALRY", ActionType.ATTACK, 15),
                           Modifier("SWORDSMAN", ActionType.ATTACK, 15),
-                          Modifier("SPEARMAN", ActionType.ATTACK, 15)])
+                          Modifier("SPEARMAN", ActionType.ATTACK, 15)], STATS["food_cost"])
 
 
 class ArabCavalry(ArabSoldier):
@@ -264,7 +302,7 @@ class ArabHorseArchers(ArabCavalry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class ArabCamelRiders(ArabCavalry):
@@ -275,7 +313,7 @@ class ArabCamelRiders(ArabCavalry):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class ArabSiegeMachines(ArabSoldier):
@@ -290,7 +328,7 @@ class ArabElephants(ArabSiegeMachines):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
 
 
 class ArabThrowers(ArabSiegeMachines):
@@ -301,4 +339,4 @@ class ArabThrowers(ArabSiegeMachines):
                          STATS["attack_range"], STATS["attack_speed"], STATS["move_speed"],
                          [],
                          [Modifier("ARCHER", ActionType.ATTACK, 15),
-                          Modifier("SIEGE", ActionType.ATTACK, 5)])
+                          Modifier("SIEGE", ActionType.ATTACK, 5)], STATS["food_cost"])
