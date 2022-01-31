@@ -1,10 +1,7 @@
 import pygame.sprite
 
-import unit_sprites
 import units
 from CONSTANTS import *
-import buildings
-from units import Unit
 
 
 class PhysicObject:
@@ -23,16 +20,17 @@ class RigidBody(PhysicObject):
         self.velocity.x, self.velocity.y = 0, 0
 
     def avoid(self):
-        for unit in filter(lambda x: isinstance(x, Unit), self.game.all_sprites_group):
+        """changing sprites pos to avoid the collision"""
+        for unit in filter(lambda x: isinstance(x, units.Unit), self.game.all_sprites_group):
             if unit != self:
                 shift = pygame.math.Vector2(self.rect.center) - pygame.math.Vector2(unit.rect.center)
                 if pygame.Rect.colliderect(self.rect, unit.rect):
                     self.rect.center += shift.normalize()
 
     def collide(self):
-        hits_list = pygame.sprite.spritecollide(self, pygame.sprite.Group(list(filter(lambda x: not isinstance(x, Unit),
-                                                                                      self.game.all_sprites_group))),
-                                                False)
+        """colliding with units and obstacles"""
+        hits_list = pygame.sprite.spritecollide(self, pygame.sprite.Group(list(
+            filter(lambda x: not isinstance(x, units.Unit), self.game.all_sprites_group))), False)
         if hits_list:
             if hits_list[0].rect.centerx > self.rect.centerx:
                 x = hits_list[0].rect.left - self.rect.width / 2
@@ -43,9 +41,8 @@ class RigidBody(PhysicObject):
             self.velocity.x = 0
             self.rect.centerx = x
 
-        hits_list = pygame.sprite.spritecollide(self, pygame.sprite.Group(list(filter(lambda x: not isinstance(x, Unit),
-                                                                                      self.game.all_sprites_group))),
-                                                False)
+        hits_list = pygame.sprite.spritecollide(self, pygame.sprite.Group(list(
+            filter(lambda x: not isinstance(x, units.Unit), self.game.all_sprites_group))), False)
         if hits_list:
             if hits_list[0].rect.centery > self.rect.centery:
                 y = hits_list[0].rect.top - self.rect.height / 2
@@ -57,6 +54,7 @@ class RigidBody(PhysicObject):
             self.rect.centery = y
 
     def process_physics(self, pos: Tuple[int, int]):
+        """moving"""
         try:
             leg_x, leg_y = abs(pos[0] - self.rect.center[0]) if abs(pos[0] - self.rect.center[0]) > 0 else 0.001, \
                            abs(pos[1] - self.rect.center[1])
@@ -90,7 +88,7 @@ class RigidBody(PhysicObject):
             pass
 
         finally:
-            if isinstance(self, unit_sprites.CrusaderWorkerSprite) and abs(pos[0] - self.rect.center[0]) < 30 \
+            if isinstance(self, units.CrusaderWorker) and abs(pos[0] - self.rect.center[0]) < 30 \
                     and abs(pos[1] - self.rect.center[1]) < 30:
                 return 1
             elif isinstance(self, units.CrusaderSoldier) and abs(pos[0] - self.rect.center[0]) < self.attack_range \
