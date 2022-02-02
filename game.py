@@ -15,7 +15,7 @@ from animation import Animation
 class Game:
 
     def __init__(self, caption="Crusader Empire"):
-        pygame.mixer.music.load(os.path.join("data", "The_Lions_Heart.wav"))
+        pygame.mixer.music.load(os.path.join("data", "Awakening.wav"))
         pygame.mixer.music.play(-1)
         pygame.mixer.music.set_volume(0.2)
         self.screen = screen

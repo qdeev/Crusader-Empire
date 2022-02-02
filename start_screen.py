@@ -10,7 +10,7 @@ game_name = font.render('CRUSADER EMPIRE', True, name_fon)
 class Menu:
     def __init__(self):
         logging.info("started_menu")
-        pygame.mixer.music.load(os.path.join("data", "Crusader_Epic.wav"))
+        pygame.mixer.music.load(os.path.join("data", "Awakening.wav"))
         pygame.mixer.music.play(-1)
         pygame.mixer.music.set_volume(0.3)
         self._options = []
